@@ -15,78 +15,95 @@ public class HandleData
 {
     static Logger logger = Logger.getLogger(HandleData.class);
     static Path path;
-    static String[]title;
-    public static void main(String[] args)throws Exception
+    static String[] title;
+    static String sortColumn;
+    static String sortColumn1;
+
+    public static void main(String[] args) throws Exception
     {
         path = Paths.get(args[0]);
-        logger.info(path + "," + path.toFile().exists());
+        sortColumn = args[1];
+        sortColumn1 = args[2];
+        logger.info(path + "," + path.toFile().exists() + "," + sortColumn + "," + sortColumn1);
         InputStream inputStream = new FileInputStream(path.toRealPath().toString());
-       title = readExcelTitle(inputStream);
-         readExcelContent();
-
+        title = readExcelTitle(inputStream);
+        readExcelContent();
     }
+
     private static POIFSFileSystem fs;
     private static HSSFWorkbook wb;
     private static HSSFSheet sheet;
     private static HSSFRow row;
 
-    public static String[] readExcelTitle(InputStream is) {
-        try {
+    public static String[] readExcelTitle(InputStream is)
+    {
+        try
+        {
             fs = new POIFSFileSystem(is);
             wb = new HSSFWorkbook(fs);
-        } catch (IOException e) {
+        }
+        catch (IOException e)
+        {
             e.printStackTrace();
         }
         sheet = wb.getSheetAt(0);
         row = sheet.getRow(0);
-        // 标题总列数
         int colNum = row.getPhysicalNumberOfCells();
         System.out.println("colNum:" + colNum);
         String[] title = new String[colNum];
-        for (int i = 0; i < colNum; i++) {
-          title[i]= getStringCellValue( row.getCell(i));
+        for (int i = 0; i < colNum; i++)
+        {
+            title[i] = getStringCellValue(row.getCell(i));
         }
         logger.info(Arrays.toString(title));
         return title;
     }
-    private static List<Map<String,String>> data;
+
+    private static List<Map<String, String>> data;
+
     private static void readExcelContent()
     {
         int rowSize = sheet.getPhysicalNumberOfRows();
-        int columSize = title.length;
-        logger.info("共计行数："+rowSize+" 列数:"+columSize);
+        int columnSize = title.length;
+        logger.info("共计行数：" + rowSize + " 列数:" + columnSize);
         data = new ArrayList<>(rowSize);
         int i = 1;
         int j = 0;
+        long t = System.currentTimeMillis();
         try
         {
-            for (i=1; i < rowSize; i++)
+            for (i = 1; i < rowSize; i++)
             {
                 row = sheet.getRow(i);
-                Map<String, String> rowContent = new HashMap<>(columSize);
-                for (j = 0; j < columSize; j++)
+                Map<String, String> rowContent = new HashMap<>(columnSize);
+                for (j = 0; j < columnSize; j++)
                 {
                     rowContent.put(title[j], getStringCellValue(row.getCell(j)));
                 }
                 data.add(rowContent);
             }
-        }catch (Exception e)
+        }
+        catch (Exception e)
         {
-            logger.info(i+","+j);
+            logger.info(i + "," + j);
             e.printStackTrace();
         }
-        logger.info(Arrays.toString(data.toArray()));
+        logger.info("耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+        //logger.info(Arrays.toString(data.toArray()));
 
     }
 
 
-    private static String getStringCellValue(HSSFCell cell) {
+    private static String getStringCellValue(HSSFCell cell)
+    {
         String strCell = "";
 
-        if (cell == null) {
+        if (cell == null)
+        {
             return "";
         }
-        switch (cell.getCellType()) {
+        switch (cell.getCellType())
+        {
             case HSSFCell.CELL_TYPE_STRING:
                 strCell = cell.getStringCellValue();
                 break;
@@ -103,43 +120,58 @@ public class HandleData
                 strCell = "";
                 break;
         }
-        if (strCell.equals("") || strCell == null) {
+        if (strCell.equals("") || strCell == null)
+        {
             return "";
         }
         return strCell;
     }
 
-    private String getDateCellValue(HSSFCell cell) {
+    private String getDateCellValue(HSSFCell cell)
+    {
         String result = "";
-        try {
+        try
+        {
             int cellType = cell.getCellType();
-            if (cellType == HSSFCell.CELL_TYPE_NUMERIC) {
+            if (cellType == HSSFCell.CELL_TYPE_NUMERIC)
+            {
                 Date date = cell.getDateCellValue();
                 result = (date.getYear() + 1900) + "-" + (date.getMonth() + 1)
                         + "-" + date.getDate();
-            } else if (cellType == HSSFCell.CELL_TYPE_STRING) {
+            }
+            else if (cellType == HSSFCell.CELL_TYPE_STRING)
+            {
                 String date = getStringCellValue(cell);
                 result = date.replaceAll("[年月]", "-").replace("日", "").trim();
-            } else if (cellType == HSSFCell.CELL_TYPE_BLANK) {
+            }
+            else if (cellType == HSSFCell.CELL_TYPE_BLANK)
+            {
                 result = "";
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             System.out.println("日期格式不正确!");
             e.printStackTrace();
         }
         return result;
     }
 
-    private String getCellFormatValue(HSSFCell cell) {
+    private String getCellFormatValue(HSSFCell cell)
+    {
         String cellvalue = "";
-        if (cell != null) {
+        if (cell != null)
+        {
             // 判断当前Cell的Type
-            switch (cell.getCellType()) {
+            switch (cell.getCellType())
+            {
                 // 如果当前Cell的Type为NUMERIC
                 case HSSFCell.CELL_TYPE_NUMERIC:
-                case HSSFCell.CELL_TYPE_FORMULA: {
+                case HSSFCell.CELL_TYPE_FORMULA:
+                {
                     // 判断当前的cell是否为Date
-                    if (HSSFDateUtil.isCellDateFormatted(cell)) {
+                    if (HSSFDateUtil.isCellDateFormatted(cell))
+                    {
                         // 如果是Date类型则，转化为Data格式
 
                         //方法1：这样子的data格式是带时分秒的：2011-10-12 0:00:00
@@ -152,7 +184,8 @@ public class HandleData
 
                     }
                     // 如果是纯数字
-                    else {
+                    else
+                    {
                         // 取得当前Cell的数值
                         cellvalue = String.valueOf(cell.getNumericCellValue());
                     }
@@ -167,7 +200,9 @@ public class HandleData
                 default:
                     cellvalue = " ";
             }
-        } else {
+        }
+        else
+        {
             cellvalue = "";
         }
         return cellvalue;
