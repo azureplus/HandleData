@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -18,6 +19,8 @@ public class HandleData
     static String[] title;
     static String sortColumn;
     static String sortColumn1;
+    static LinkedList<Map<String, String>> sortedData;
+    static LinkedList<Map<String, String>> sortedData1;
 
     public static void main(String[] args) throws Exception
     {
@@ -28,6 +31,11 @@ public class HandleData
         InputStream inputStream = new FileInputStream(path.toRealPath().toString());
         title = readExcelTitle(inputStream);
         readExcelContent();
+        sortedData = new LinkedList<>();
+        sortData(sortedData, sortColumn);
+        printData(sortedData, sortColumn);
+        sortedData1 = new LinkedList<>();
+        sortData(sortedData1, sortColumn1);
     }
 
     private static POIFSFileSystem fs;
@@ -60,11 +68,13 @@ public class HandleData
     }
 
     private static List<Map<String, String>> data;
+    static int rowSize;
+    static int columnSize;
 
     private static void readExcelContent()
     {
-        int rowSize = sheet.getPhysicalNumberOfRows();
-        int columnSize = title.length;
+        rowSize = sheet.getPhysicalNumberOfRows();
+        columnSize = title.length;
         logger.info("共计行数：" + rowSize + " 列数:" + columnSize);
         data = new ArrayList<>(rowSize);
         int i = 1;
@@ -89,15 +99,80 @@ public class HandleData
             e.printStackTrace();
         }
         logger.info("耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
-        //logger.info(Arrays.toString(data.toArray()));
-
+        //logger.debug(Arrays.toString(data.toArray()));
     }
 
+    private static void printData(List<Map<String, String>> d, String cn)
+    {
+        for (int i = 0; i < d.size(); i++)
+        {
+            logger.info(d.get(i).get(cn));
+        }
+    }
 
+    /**
+     * 按照列来排序
+     *
+     * @param columnName
+     */
+    private static void sortData(LinkedList<Map<String, String>> sdata, String columnName)
+    {
+        logger.info("开始排序");
+        long t = System.currentTimeMillis();
+        double baseValue = Double.parseDouble(data.get(0).get(columnName));
+        int baseIndex = 0;
+        sdata.addFirst(data.get(0));
+        Double d;
+        for (int i = 0; i < rowSize - 1; i++)
+        {
+            Map<String, String> v = data.get(i);
+            Double vc = Double.parseDouble(v.get(columnName));
+            if(i%1000==0)
+            {
+                logger.info("sort:"+i+",total:"+(rowSize-1)+",per: "+(int)(i/(1.0*(rowSize-1))*10000)/100.0+"%,耗时："+(System.currentTimeMillis() - t) / 1000.0 + "秒");
+            }
+            if (vc < baseValue)
+            {
+                int j = baseIndex;
+                while (j > 0)
+                {
+                    d = Double.parseDouble(sdata.get(j).get(columnName));
+                    if (vc >= d)
+                        break;
+                    j--;
+                }
+                sdata.add(j, v);
+                baseIndex++;
+            }
+            else
+            {
+                int j = baseIndex;
+                while (j < sdata.size())
+                {
+                    d = Double.parseDouble(sdata.get(j).get(columnName));
+                    if (vc < d)
+                        break;
+                    j++;
+                }
+                sdata.add(j, v);
+            }
+        }
+        logger.info("排序列：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+    }
+
+//    private static void insertData(LinkedList<Map<String, String>> linkedList, in)
+
+    static DecimalFormat df = new DecimalFormat("0");
+
+    /**
+     * 获取单元格内容
+     *
+     * @param cell
+     * @return
+     */
     private static String getStringCellValue(HSSFCell cell)
     {
         String strCell = "";
-
         if (cell == null)
         {
             return "";
@@ -108,7 +183,7 @@ public class HandleData
                 strCell = cell.getStringCellValue();
                 break;
             case HSSFCell.CELL_TYPE_NUMERIC:
-                strCell = String.valueOf(cell.getNumericCellValue());
+                strCell = String.valueOf(df.format(cell.getNumericCellValue()));
                 break;
             case HSSFCell.CELL_TYPE_BOOLEAN:
                 strCell = String.valueOf(cell.getBooleanCellValue());
