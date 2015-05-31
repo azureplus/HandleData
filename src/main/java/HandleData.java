@@ -88,7 +88,7 @@ public class HandleData
                 t = convertAlp(i, "");
             title[i] = t;
         }
-        logger.info(Arrays.toString(title));
+        logger.info("title:"+Arrays.toString(title));
         return title;
     }
 

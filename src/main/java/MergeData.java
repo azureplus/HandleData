@@ -70,7 +70,7 @@ public class MergeData
         title = Arrays.copyOf(title1, title.length);
         title[title.length-1] = handleData.column1;
         handleData.title = title;
-        HandleData.logger.info(Arrays.toString(title));
+        HandleData.logger.info("title:"+Arrays.toString(title));
         handleData.data2 = new ArrayList<>();
         handleData.sortData(handleData.resultData, handleData.data2 ,handleData.title[0]);
         handleData.writeResultData(handleData.data2);
