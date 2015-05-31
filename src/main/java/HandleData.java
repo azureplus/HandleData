@@ -1,3 +1,4 @@
+import jdk.internal.dynalink.beans.StaticClass;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
@@ -16,40 +17,46 @@ import java.util.*;
 
 public class HandleData
 {
-    static Logger logger = Logger.getLogger(HandleData.class);
-    static Path path;
-    static String[] title;
-    static String sortColumn;
-    static String sortColumn1;
-    static List<Map<String, String>> sortedData;
-    static List<Map<String, String>> sortedData1;
-    static Map<String, Map<String, String>> resultData;
-    static String resultPathStr;
+    public static Logger logger = Logger.getLogger(HandleData.class);
+    Path path;
+    String[] title;
+    String column1;
+    String column2;
+    List<Map<String, String>> data1;
+    List<Map<String, String>> data2;
+    Map<String, Map<String, String>> resultData;
+    String resultPathStr;
+    static String[] abc = new String[26];
 
-    public static void main(String[] args) throws Exception
+    static
     {
-        path = Paths.get(args[0]);
-        resultPathStr = path.toRealPath().toString().replace(".xls", "_result.xls");
-        sortColumn = args[1];
-        sortColumn1 = args[2];
-        logger.info(path + "," + path.toFile().exists() + "," + sortColumn + "," + sortColumn1);
-        InputStream inputStream = new FileInputStream(path.toRealPath().toString());
-        title = readExcelTitle(inputStream);
-        readExcelContent();
-        sortedData = new ArrayList<>();
-        sortData(sortedData, sortColumn);
-        filterData(sortedData, sortColumn1);
-        //  printData(sortedData, sortColumn);
-        sortedData1 = new ArrayList<>();
-        sortData(sortedData1, sortColumn1);
-        filterData(sortedData1, sortColumn);
-        // printData(sortedData1, sortColumn1);
-        resultData = new HashMap<>();
-        logger.info("开始mergeData...");
-        mergeData(resultData, sortedData);
-        mergeData(resultData, sortedData1);
-        logger.info("完成mergeData...共计：" + resultData.size() + "行");
-        writeResultData();
+        char a = 'A';
+        for (char i = 0; i < 26; i++)
+        {
+            abc[i] = String.valueOf((char) (a + i));
+        }
+    }
+
+    private static String convertAlp(int i, String b)
+    {
+        if ((i / 26) == 0)
+            return b + abc[i];
+        String c = b + abc[i % 26];
+        return convertAlp(i / 26, c);
+    }
+
+    public static void main(String[] args)
+    {
+        System.out.println(convertAlp(250, ""));
+    }
+
+    private void deleteSomeData(List<Map<String, String>> sdata, String columnName)
+    {
+        List<Integer> dd = new ArrayList<>();
+        Map<String, String> item = sdata.get(0);
+        for (int i = 1; i < sdata.size(); i++)
+        {
+        }
     }
 
     private static POIFSFileSystem fs;
@@ -57,29 +64,29 @@ public class HandleData
     private static HSSFSheet sheet;
     private static HSSFRow row;
 
-    public static String[] readExcelTitle(InputStream is) throws IOException
+    public String[] readExcelTitle(InputStream is) throws IOException
     {
         try
         {
             fs = new POIFSFileSystem(is);
             wb = new HSSFWorkbook(fs);
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             e.printStackTrace();
-        }
-        finally
+        } finally
         {
             wb.close();
         }
         sheet = wb.getSheetAt(0);
         row = sheet.getRow(0);
         int colNum = row.getPhysicalNumberOfCells();
-        System.out.println("colNum:" + colNum);
         String[] title = new String[colNum];
         for (int i = 0; i < colNum; i++)
         {
-            title[i] = getStringCellValue(row.getCell(i));
+            String t = getStringCellValue(row.getCell(i));
+            if ("".equals(t) || t == null)
+                t = convertAlp(i, "");
+            title[i] = t;
         }
         logger.info(Arrays.toString(title));
         return title;
@@ -87,14 +94,16 @@ public class HandleData
 
     private static List<Map<String, String>> data;
     static int rowSize;
-    static int columnSize;
 
-    private static void readExcelContent()
+    void readExcelContent(List<Map<String, String>> readData)
     {
         rowSize = sheet.getPhysicalNumberOfRows();
-        columnSize = title.length;
-        logger.info("共计行数：" + rowSize + " 列数:" + columnSize);
-        data = new ArrayList<>(rowSize);
+        int columnSize = title.length;
+        logger.info(path.getFileName() + " 共计行数：" + rowSize + " 列数:" + columnSize);
+        if (readData == null)
+            data = new ArrayList<>(rowSize);
+        else
+            data = readData;
         int i = 1;
         int j = 0;
         long t = System.currentTimeMillis();
@@ -111,17 +120,20 @@ public class HandleData
                 rowContent.put("uid", String.valueOf(i));//添加行ID
                 data.add(rowContent);
             }
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             logger.info(i + "," + j);
             e.printStackTrace();
         }
-        logger.info("耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+        logger.info("读取数据耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+        fs = null;
+        wb = null;
+        sheet = null;
+        row = null;
         //logger.debug(Arrays.toString(data.toArray()));
     }
 
-    static void printData(List<Map<String, String>> d, String cn)
+    void printData(List<Map<String, String>> d, String cn)
     {
         for (int i = 0; i < d.size(); i++)
         {
@@ -134,7 +146,7 @@ public class HandleData
      *
      * @param columnName
      */
-    static void sortData(List<Map<String, String>> sdata, String columnName)
+    void sortData(List<Map<String, String>> sdata, String columnName)
     {
         logger.info("开始排序");
         long t = System.currentTimeMillis();
@@ -155,7 +167,35 @@ public class HandleData
         logger.info("排序完成：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
     }
 
-    static void filterData(List<Map<String, String>> sdata, String columnName)
+    /**
+     * 按照列来排序
+     *
+     * @param columnName
+     */
+    void sortData(Map<String, Map<String, String>> resultData, List<Map<String, String>> sdata, String columnName)
+    {
+        logger.info("开始排序");
+        long t = System.currentTimeMillis();
+        int j = 0;
+        int i = 0;
+        for (Map.Entry<String, Map<String, String>> entry : resultData.entrySet())
+        {
+            if (i % 1000 == 0 || i == rowSize - 2)
+            {
+                logger.info("sort:" + (i + 1) + ",total:" + (rowSize - 1) + ",per: " + (int) ((i + 1) / (1.0 * (rowSize - 1)) * 10000) / 100.0 + "%,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+            }
+            Map<String, String> v = entry.getValue();
+            Double compValue = parseDouble(v.get(columnName));
+            if (i > 0)
+                j = findIndex(sdata, columnName, compValue, 0, i);
+            sdata.add(j, v);
+            j++;
+            i++;
+        }
+        logger.info("排序完成：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
+    }
+
+    void filterData(List<Map<String, String>> sdata, String columnName)
     {
         long t = System.currentTimeMillis();
         logger.info("开始过滤排序");
@@ -167,8 +207,7 @@ public class HandleData
             if (c > d)
             {
                 d = c;
-            }
-            else
+            } else
             {
                 sdata.remove(i);
                 i--;
@@ -177,7 +216,7 @@ public class HandleData
         logger.info("过滤排序完成：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒，" + sdata.size() + "行");
     }
 
-    static void mergeData(Map<String, Map<String, String>> resultData, List<Map<String, String>> mergeList)
+    void mergeData(Map<String, Map<String, String>> resultData, List<Map<String, String>> mergeList)
     {
         for (int i = 0; i < mergeList.size(); i++)
         {
@@ -186,7 +225,38 @@ public class HandleData
         }
     }
 
-    static int findIndex(List<Map<String, String>> sdata, String columnName, Double insertValue, int start, int end)
+    public void updateUID(List<Map<String, String>> items, String... args)
+    {
+        for (int i = 0; i < items.size(); i++)
+        {
+            Map<String, String> item = items.get(i);
+            String uid = "";
+            for (String id : args)
+                uid += item.get(id);
+            item.put("uid", uid);
+        }
+    }
+
+    void mergeData(Map<String, Map<String, String>> resultData, List<Map<String, String>> mergeList, String column)
+    {
+        int i = 0;
+        try
+        {
+            for (i = 0; i < mergeList.size(); i++)
+            {
+                Map<String, String> item = mergeList.get(i);
+                Map<String, String> resultItem = resultData.get(item.get("uid"));
+                if (resultItem != null)
+                    resultItem.put(column, item.get(column));
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            logger.error(i);
+        }
+    }
+
+    int findIndex(List<Map<String, String>> sdata, String columnName, Double insertValue, int start, int end)
     {
         int index = 0;
         int baseIndex = (start + end) / 2;
@@ -197,22 +267,21 @@ public class HandleData
         if (insertValue < vc)
         {
             index = findIndex(sdata, columnName, insertValue, start, baseIndex);
-        }
-        else
+        } else
         {
             index = findIndex(sdata, columnName, insertValue, baseIndex + 1, end);
         }
         return index;
     }
 
-    static double parseDouble(String value)
+    double parseDouble(String value)
     {
         if (value == null || value == "")
             return 0.0;
         return Double.parseDouble(value);
     }
 
-    static DecimalFormat df = new DecimalFormat("0");
+    DecimalFormat df = new DecimalFormat("0");
 
     /**
      * 获取单元格内容
@@ -220,7 +289,7 @@ public class HandleData
      * @param cell
      * @return
      */
-    private static String getStringCellValue(HSSFCell cell)
+    private String getStringCellValue(HSSFCell cell)
     {
         String strCell = "";
         if (cell == null)
@@ -295,8 +364,7 @@ public class HandleData
                 default:
                     cellvalue = " ";
             }
-        }
-        else
+        } else
         {
             cellvalue = "";
         }
@@ -304,58 +372,68 @@ public class HandleData
 
     }
 
-    static void writeResultData() throws Exception
+    void writeResultData(List<Map<String,String>> data) throws Exception
     {
         try
         {
             HSSFWorkbook workbook = new HSSFWorkbook();                        // 创建工作簿对象
             FileOutputStream fos = new FileOutputStream(resultPathStr);        // 创建.xls文件
             HSSFSheet sheet = workbook.createSheet();                        // 创建工作表
-
-//            sheet.setDefaultColumnWidth(30);                        // 设置工作表列宽
-//            sheet.setDefaultRowHeight((short) 10);                            // 设置工作表行高
-
-            HSSFCellStyle columnTopStyle = getColumnTopStyle(workbook);//获取列头样式对象
+            HSSFCellStyle columnTopStyle = getColumnTopStyle(workbook);     //获取列头样式对象
             HSSFCellStyle style = getStyle(workbook);                    //单元格样式对象
-            //设置列头
             HSSFRow row1 = sheet.createRow((short) 0);                // 在索引0的位置创建行(最顶端的行)
             HSSFCell cell1 = null;                                    // 在索引0的位置创建单元格(左上端)
             // 将列头设置到sheet的单元格中
+            int columnSize = title.length;
             for (int i = 0; i < columnSize; i++)
             {
                 cell1 = row1.createCell(i);                //创建列头对应个数的单元格
                 cell1.setCellType(HSSFCell.CELL_TYPE_STRING);        //设置列头单元格的数据类型
                 cell1.setCellValue(title[i]);                        //设置列头单元格的值
-               // cell1.setCellStyle(columnTopStyle);                    //设置列头单元格样式
+                // cell1.setCellStyle(columnTopStyle);                    //设置列头单元格样式
             }
             int i = 1;
-            for (Map.Entry<String, Map<String, String>> entry : resultData.entrySet())
+            if(data == null)
             {
-                HSSFRow row = sheet.createRow(i); 
-                i++;
-                Map<String, String> item = entry.getValue();
-                for (int j = 0; j < columnSize; j++)
+                for (Map.Entry<String, Map<String, String>> entry : resultData.entrySet())
                 {
-                    HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
-                    cell.setCellValue(item.get(title[j]));                                    //设置单元格的值
-                    //cell.setCellStyle(style);                                    //设置单元格样式
+                    HSSFRow row = sheet.createRow(i);
+                    i++;
+                    Map<String, String> item = entry.getValue();
+                    for (int j = 0; j < columnSize; j++)
+                    {
+                        HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
+                        cell.setCellValue(item.get(title[j])); //设置单元格的值
+                    }
+                }
+            }
+            else
+            {
+                for ( i = 0; i < data.size(); i++)
+                {
+                    HSSFRow row = sheet.createRow(i);
+                    Map<String, String> item = data.get(i);
+                    for (int j = 0; j < columnSize; j++)
+                    {
+                        HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
+                        cell.setCellValue(item.get(title[j])); //设置单元格的值
+                    }
                 }
             }
             workbook.write(fos);// 将workbook对象输出到文件test.xls
             fos.flush();        // 缓冲
             fos.close();        // 关闭流
-        }
-        catch (Exception e)
+        } catch (Exception e)
         {
             e.printStackTrace();
         }
-        logger.info("保存完成，保存位置："+resultPathStr);
+        logger.info("保存完成，保存位置：" + resultPathStr);
     }
 
     /* 
      * 列头单元格样式
      */
-    static HSSFCellStyle getColumnTopStyle(HSSFWorkbook workbook)
+    HSSFCellStyle getColumnTopStyle(HSSFWorkbook workbook)
     {
 
         // 设置字体
@@ -400,7 +478,7 @@ public class HandleData
     /*  
    * 列数据信息单元格样式
    */
-    static HSSFCellStyle getStyle(HSSFWorkbook workbook)
+    HSSFCellStyle getStyle(HSSFWorkbook workbook)
     {
         // 设置字体
         HSSFFont font = workbook.createFont();
