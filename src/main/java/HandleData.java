@@ -1,16 +1,13 @@
-import jdk.internal.dynalink.beans.StaticClass;
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.util.NumberToTextConverter;
 
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -22,9 +19,9 @@ public class HandleData
     String[] title;
     String column1;
     String column2;
-    List<Map<String, String>> data1;
-    List<Map<String, String>> data2;
-    Map<String, Map<String, String>> resultData;
+    List<Map<String, Object>> data1;
+    List<Map<String, Object>> data2;
+    Map<String, Map<String, Object>> resultData;
     String resultPathStr;
     static String[] abc = new String[26];
 
@@ -50,10 +47,10 @@ public class HandleData
         System.out.println(convertAlp(250, ""));
     }
 
-    private void deleteSomeData(List<Map<String, String>> sdata, String columnName)
+    private void deleteSomeData(List<Map<String, Object>> sdata, String columnName)
     {
         List<Integer> dd = new ArrayList<>();
-        Map<String, String> item = sdata.get(0);
+        Map<String, Object> item = sdata.get(0);
         for (int i = 1; i < sdata.size(); i++)
         {
         }
@@ -83,7 +80,7 @@ public class HandleData
         String[] title = new String[colNum];
         for (int i = 0; i < colNum; i++)
         {
-            String t = getStringCellValue(row.getCell(i));
+            String t = getObjectCellValue(row.getCell(i)).toString();
             if ("".equals(t) || t == null)
                 t = convertAlp(i, "");
             title[i] = t;
@@ -92,10 +89,10 @@ public class HandleData
         return title;
     }
 
-    private static List<Map<String, String>> data;
+    private static List<Map<String, Object>> data;
     static int rowSize;
 
-    void readExcelContent(List<Map<String, String>> readData)
+    void readExcelContent(List<Map<String, Object>> readData)
     {
         rowSize = sheet.getPhysicalNumberOfRows();
         int columnSize = title.length;
@@ -112,10 +109,10 @@ public class HandleData
             for (i = 1; i < rowSize; i++)
             {
                 row = sheet.getRow(i);
-                Map<String, String> rowContent = new HashMap<>(columnSize);
+                Map<String, Object> rowContent = new HashMap<>(columnSize);
                 for (j = 0; j < columnSize; j++)
                 {
-                    rowContent.put(title[j], getStringCellValue(row.getCell(j)));
+                    rowContent.put(title[j], getObjectCellValue(row.getCell(j)));
                 }
                 rowContent.put("uid", String.valueOf(i));//添加行ID
                 data.add(rowContent);
@@ -133,7 +130,7 @@ public class HandleData
         //logger.debug(Arrays.toString(data.toArray()));
     }
 
-    void printData(List<Map<String, String>> d, String cn)
+    void printData(List<Map<String, Object>> d, String cn)
     {
         for (int i = 0; i < d.size(); i++)
         {
@@ -146,7 +143,7 @@ public class HandleData
      *
      * @param columnName
      */
-    void sortData(List<Map<String, String>> sdata, String columnName)
+    void sortData(List<Map<String, Object>> sdata, String columnName)
     {
         logger.info("开始排序");
         long t = System.currentTimeMillis();
@@ -157,7 +154,7 @@ public class HandleData
             {
                 logger.info("sort:" + (i + 1) + ",total:" + (rowSize - 1) + ",per: " + (int) ((i + 1) / (1.0 * (rowSize - 1)) * 10000) / 100.0 + "%,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
             }
-            Map<String, String> v = data.get(i);
+            Map<String, Object> v = data.get(i);
             Double compValue = parseDouble(v.get(columnName));
             if (i > 0)
                 j = findIndex(sdata, columnName, compValue, 0, i);
@@ -172,19 +169,19 @@ public class HandleData
      *
      * @param columnName
      */
-    void sortData(Map<String, Map<String, String>> resultData, List<Map<String, String>> sdata, String columnName)
+    void sortData(Map<String, Map<String, Object>> resultData, List<Map<String, Object>> sdata, String columnName)
     {
         logger.info("开始排序");
         long t = System.currentTimeMillis();
         int j = 0;
         int i = 0;
-        for (Map.Entry<String, Map<String, String>> entry : resultData.entrySet())
+        for (Map.Entry<String, Map<String, Object>> entry : resultData.entrySet())
         {
             if (i % 1000 == 0 || i == rowSize - 2)
             {
                 logger.info("sort:" + (i + 1) + ",total:" + (rowSize - 1) + ",per: " + (int) ((i + 1) / (1.0 * (rowSize - 1)) * 10000) / 100.0 + "%,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
             }
-            Map<String, String> v = entry.getValue();
+            Map<String, Object> v = entry.getValue();
             Double compValue = parseDouble(v.get(columnName));
             if (i > 0)
                 j = findIndex(sdata, columnName, compValue, 0, i);
@@ -195,7 +192,7 @@ public class HandleData
         logger.info("排序完成：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
     }
 
-    void filterData(List<Map<String, String>> sdata, String columnName)
+    void filterData(List<Map<String, Object>> sdata, String columnName)
     {
         long t = System.currentTimeMillis();
         logger.info("开始过滤排序");
@@ -216,36 +213,37 @@ public class HandleData
         logger.info("过滤排序完成：" + columnName + " ,耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒，" + sdata.size() + "行");
     }
 
-    void mergeData(Map<String, Map<String, String>> resultData, List<Map<String, String>> mergeList)
+    void mergeData(Map<String, Map<String, Object>> resultData, List<Map<String, Object>> mergeList)
     {
         for (int i = 0; i < mergeList.size(); i++)
         {
-            Map<String, String> item = mergeList.get(i);
-            resultData.put(item.get("uid"), item);
+            Map<String, Object> item = mergeList.get(i);
+            resultData.put(item.get("uid").toString(), item);
         }
     }
 
-    public void updateUID(List<Map<String, String>> items, String... args)
+    public void updateUID(List<Map<String, Object>> items, String... args)
     {
         for (int i = 0; i < items.size(); i++)
         {
-            Map<String, String> item = items.get(i);
+            Map<String, Object> item = items.get(i);
             String uid = "";
             for (String id : args)
-                uid += item.get(id);
+                uid += item.get(id).toString().replace(".","");
+            logger.info("uid:"+uid);
             item.put("uid", uid);
         }
     }
 
-    void mergeData(Map<String, Map<String, String>> resultData, List<Map<String, String>> mergeList, String column)
+    void mergeData(Map<String, Map<String, Object>> resultData, List<Map<String, Object>> mergeList, String column)
     {
         int i = 0;
         try
         {
             for (i = 0; i < mergeList.size(); i++)
             {
-                Map<String, String> item = mergeList.get(i);
-                Map<String, String> resultItem = resultData.get(item.get("uid"));
+                Map<String, Object> item = mergeList.get(i);
+                Map<String, Object> resultItem = resultData.get(item.get("uid"));
                 if (resultItem != null)
                     resultItem.put(column, item.get(column));
             }
@@ -256,13 +254,13 @@ public class HandleData
         }
     }
 
-    int findIndex(List<Map<String, String>> sdata, String columnName, Double insertValue, int start, int end)
+    int findIndex(List<Map<String, Object>> sdata, String columnName, Double insertValue, int start, int end)
     {
         int index = 0;
         int baseIndex = (start + end) / 2;
         if (baseIndex >= end)
             return baseIndex;
-        Map<String, String> v = sdata.get(baseIndex);
+        Map<String, Object> v = sdata.get(baseIndex);
         Double vc = parseDouble(v.get(columnName));
         if (insertValue < vc)
         {
@@ -274,14 +272,12 @@ public class HandleData
         return index;
     }
 
-    double parseDouble(String value)
+    double parseDouble(Object value)
     {
         if (value == null || value == "")
             return 0.0;
-        return Double.parseDouble(value);
+        return Double.parseDouble(value.toString());
     }
-
-    DecimalFormat df = new DecimalFormat("0");
 
     /**
      * 获取单元格内容
@@ -289,9 +285,9 @@ public class HandleData
      * @param cell
      * @return
      */
-    private String getStringCellValue(HSSFCell cell)
+    private Object getObjectCellValue(HSSFCell cell)
     {
-        String strCell = "";
+        Object strCell = "";
         if (cell == null)
         {
             return "";
@@ -302,10 +298,11 @@ public class HandleData
                 strCell = cell.getStringCellValue();
                 break;
             case HSSFCell.CELL_TYPE_NUMERIC:
-                strCell = String.valueOf(df.format(cell.getNumericCellValue()));
+                strCell = cell.getNumericCellValue();
+                logger.info(strCell);
                 break;
             case HSSFCell.CELL_TYPE_BOOLEAN:
-                strCell = String.valueOf(cell.getBooleanCellValue());
+                strCell = cell.getBooleanCellValue();
                 break;
             case HSSFCell.CELL_TYPE_BLANK:
                 strCell = "";
@@ -372,7 +369,7 @@ public class HandleData
 
     }
 
-    void writeResultData(List<Map<String,String>> data) throws Exception
+    void writeResultData(List<Map<String,Object>> data) throws Exception
     {
         try
         {
@@ -395,28 +392,36 @@ public class HandleData
             int i = 1;
             if(data == null)
             {
-                for (Map.Entry<String, Map<String, String>> entry : resultData.entrySet())
+                for (Map.Entry<String, Map<String, Object>> entry : resultData.entrySet())
                 {
                     HSSFRow row = sheet.createRow(i);
                     i++;
-                    Map<String, String> item = entry.getValue();
+                    Map<String, Object> item = entry.getValue();
                     for (int j = 0; j < columnSize; j++)
                     {
                         HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
-                        cell.setCellValue(item.get(title[j])); //设置单元格的值
+                        Object v = item.get(title[j]);
+                        if(v instanceof Double)
+                            cell.setCellValue(((Double) v).doubleValue()); //设置单元格的值
+                        else
+                            cell.setCellValue(v.toString()); //设置单元格的值
                     }
                 }
             }
             else
             {
-                for ( i = 1; i < data.size(); i++)
+                for ( i = 0; i < data.size(); i++)
                 {
-                    HSSFRow row = sheet.createRow(i);
-                    Map<String, String> item = data.get(i);
+                    HSSFRow row = sheet.createRow(i+1);
+                    Map<String, Object> item = data.get(i);
                     for (int j = 0; j < columnSize; j++)
                     {
-                        HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
-                        cell.setCellValue(item.get(title[j])); //设置单元格的值
+                        HSSFCell cell = row.createCell(j);//设置单元格的数据类型
+                        Object v = item.get(title[j]);
+                        if(v instanceof Double)
+                            cell.setCellValue(((Double) v).doubleValue()); //设置单元格的值
+                        else
+                            cell.setCellValue((String)v); //设置单元格的值
                     }
                 }
             }
@@ -429,6 +434,7 @@ public class HandleData
         }
         logger.info("保存完成，保存位置：" + resultPathStr);
     }
+    
 
     /* 
      * 列头单元格样式
