@@ -24,6 +24,11 @@ public class MergeData
         Scanner scanner = new Scanner(System.in);
         String p = scanner.next();
         Path path1 = null;
+        if(("exit").equals(p))
+        {
+            logger.info("退出系统");
+            System.exit(0);
+        }
         try
         {
             while (true)
@@ -57,6 +62,10 @@ public class MergeData
         System.out.print(prom + ": ");
         Scanner scanner = new Scanner(System.in);
         String p = scanner.next();
+        if(("exit").equals(p))
+        {
+            System.exit(0);
+        }
         return p;
     }
 
@@ -66,6 +75,10 @@ public class MergeData
         System.out.print(prom);
         Scanner scanner = new Scanner(System.in);
         String p = scanner.next();
+        if(("exit").equals(p))
+        {
+            System.exit(0);
+        }
         while (true)
         {
             int i = 0;
@@ -100,47 +113,52 @@ public class MergeData
      */
     public static void main(String[] args) throws Exception
     {
-
         String path = MergeData.class.getProtectionDomain().getCodeSource().getLocation().toString();
         if (path.endsWith(".jar"))
         {
             path = path.substring(0, path.lastIndexOf("/") + 1);
         }
         path = path.replace("file:/", "");
-        Path path1 = getPath(path, "第一个");
-        Path path2 = getPath(path, "第二个");
-        HandleData handleData = new HandleData();
-        handleData.path = path1;
-        handleData.resultPathStr = path1.toRealPath().toString().replace(".xls", "_result.xls");
-        InputStream inputStream = new FileInputStream(path1.toRealPath().toString());
-        String[] title1 = handleData.title = handleData.readExcelTitle(inputStream);
-        handleData.data1 = new ArrayList<>();
-        handleData.readExcelContent(handleData.data1);
-        handleData.path = path2;
-        inputStream = new FileInputStream(path2.toRealPath().toString());
-        String[] title2 = handleData.title = handleData.readExcelTitle(inputStream);
-        handleData.column1 = getInput(title2, "合并列名");
-        handleData.data2 = new ArrayList<>();
-        handleData.readExcelContent(handleData.data2);
-        handleData.updateUID(handleData.data1, "year", "id");
-        handleData.updateUID(handleData.data2, "year", "id");
-        handleData.resultData = new HashMap<>();
-        handleData.mergeData(handleData.resultData, handleData.data1);
-        handleData.mergeData(handleData.resultData, handleData.data2, handleData.column1);
-        String[] title = new String[title1.length + 1];
-        title = Arrays.copyOf(title1, title.length);
-        title[title.length - 1] = handleData.column1;
-        handleData.title = title;
-        HandleData.logger.info("title:" + Arrays.toString(title));
-        handleData.data2 = null;
-        if (getInput("是否需要排序(yes/no)").toLowerCase().indexOf("y") != -1)
+        while (true)
         {
+            Path path1 = getPath(path, "第一个");
+            Path path2 = getPath(path, "第二个");
+            HandleData handleData = new HandleData();
+            handleData.path = path1;
+            handleData.resultPathStr = path1.toRealPath().toString().replace(".xls", "_result.xls");
+            InputStream inputStream = new FileInputStream(path1.toRealPath().toString());
+            String[] title1 = handleData.title = handleData.readExcelTitle(inputStream);
+            handleData.data1 = new ArrayList<>();
+            handleData.readExcelContent(handleData.data1);
+            handleData.path = path2;
+            inputStream = new FileInputStream(path2.toRealPath().toString());
+            String[] title2 = handleData.title = handleData.readExcelTitle(inputStream);
+            handleData.column1 = getInput(title2, "合并列名");
             handleData.data2 = new ArrayList<>();
-            String sortName = getInput(title, "排序名");
+            handleData.readExcelContent(handleData.data2);
+            handleData.updateUID(handleData.data1, "year", "id");
+            handleData.updateUID(handleData.data2, "year", "id");
+            handleData.resultData = new HashMap<>();
+            handleData.mergeData(handleData.resultData, handleData.data1);
+            handleData.mergeData(handleData.resultData, handleData.data2, handleData.column1);
+            String[] title = new String[title1.length + 1];
+            title = Arrays.copyOf(title1, title.length);
+            title[title.length - 1] = handleData.column1;
+            handleData.title = title;
+            HandleData.logger.info("title:" + Arrays.toString(title));
+            handleData.data2 = null;
+            if (getInput("是否需要排序(yes/no)").toLowerCase().indexOf("y") != -1)
+            {
+                handleData.data2 = new ArrayList<>();
+                String sortName = getInput(title, "排序名");
 
-            handleData.sortData(handleData.resultData, handleData.data2, sortName);
+                handleData.sortData(handleData.resultData, handleData.data2, sortName);
+            }
+            handleData.writeResultData(handleData.data2);
+            if (getInput("本次处理完成，是否继续处理新的数据(yes/no)").toLowerCase().indexOf("y") == -1)
+                break;
         }
-        handleData.writeResultData(handleData.data2);
+
     }
 
 }
