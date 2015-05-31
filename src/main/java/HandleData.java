@@ -409,7 +409,7 @@ public class HandleData
             }
             else
             {
-                for ( i = 0; i < data.size(); i++)
+                for ( i = 1; i < data.size(); i++)
                 {
                     HSSFRow row = sheet.createRow(i);
                     Map<String, String> item = data.get(i);

@@ -151,7 +151,6 @@ public class MergeData
             {
                 handleData.data2 = new ArrayList<>();
                 String sortName = getInput(title, "排序名");
-
                 handleData.sortData(handleData.resultData, handleData.data2, sortName);
             }
             handleData.writeResultData(handleData.data2);
