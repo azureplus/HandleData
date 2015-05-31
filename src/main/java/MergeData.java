@@ -24,7 +24,13 @@ public class MergeData
     {
         Path path1 = null;
         Path path2 = null;
-        String path = MergeData.class.getClassLoader().getResource("").toString().replace("file:/", "");
+        String path =  MergeData.class.getProtectionDomain().getCodeSource().getLocation().toString();
+        if(path.endsWith(".jar"))
+        {
+            path = path.substring(0,path.lastIndexOf("/")+1);
+        }
+        System.out.println(path);
+        path = path.replace("file:/", "");
         if (args[0].indexOf(":") == -1)
         {
             path1 = Paths.get(path + args[0]);

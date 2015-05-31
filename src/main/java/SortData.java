@@ -31,10 +31,10 @@ public class SortData
 //        filterData(data2, column1);
         // printData(data2, column2);
         handleData.resultData = new HashMap<>();
-        HandleData.logger.info("¿ªÊ¼mergeData...");
+        HandleData.logger.info("å¼€å§‹mergeData...");
         handleData.mergeData(handleData.resultData, handleData.data1);
         //mergeData(resultData, data2);
-        HandleData.logger.info("Íê³ÉmergeData...¹²¼Æ£º" + handleData.resultData.size() + "ĞĞ");
+        HandleData.logger.info("å®ŒæˆmergeData...å…±è®¡ï¼š" + handleData.resultData.size() + "è¡Œ");
         handleData.writeResultData(null);
     }
 }
