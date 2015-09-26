@@ -2,7 +2,13 @@ import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.NumberToTextConverter;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import sun.tools.jconsole.inspector.XSheet;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -368,18 +374,69 @@ public class HandleData
         return cellvalue;
 
     }
+    /*
+        * 列头单元格样式
+        */
+    CellStyle getColumnTopStyle(Workbook workbook)
+    {
 
+        // 设置字体
+        Font font = workbook.createFont();
+        //设置字体大小
+        font.setFontHeightInPoints((short) 11);
+        //字体加粗
+        font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+        //设置字体名字
+        font.setFontName("Courier New");
+        //设置样式;
+        CellStyle style = workbook.createCellStyle();
+        //设置底边框;
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        //设置底边框颜色;
+        style.setBottomBorderColor(HSSFColor.BLACK.index);
+        //设置左边框;
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        //设置左边框颜色;
+        style.setLeftBorderColor(HSSFColor.BLACK.index);
+        //设置右边框;
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        //设置右边框颜色;
+        style.setRightBorderColor(HSSFColor.BLACK.index);
+        //设置顶边框;
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        //设置顶边框颜色;
+        style.setTopBorderColor(HSSFColor.BLACK.index);
+        //在样式用应用设置的字体;
+        style.setFont(font);
+        //设置自动换行;
+        style.setWrapText(false);
+        //设置水平对齐的样式为居中对齐;
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+        //设置垂直对齐的样式为居中对齐;
+        style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+
+        return style;
+
+    }
     void writeResultData(List<Map<String,Object>> data) throws Exception
     {
         try
         {
-            HSSFWorkbook workbook = new HSSFWorkbook();                        // 创建工作簿对象
+            Workbook workbook;                      // 创建工作簿对象
+            if(resultPathStr.endsWith(".xls"))
+            {
+                workbook = new HSSFWorkbook();
+            }
+            else
+            {
+                workbook = new XSSFWorkbook();
+            }
             FileOutputStream fos = new FileOutputStream(resultPathStr);        // 创建.xls文件
-            HSSFSheet sheet = workbook.createSheet();                        // 创建工作表
-            HSSFCellStyle columnTopStyle = getColumnTopStyle(workbook);     //获取列头样式对象
-            HSSFCellStyle style = getStyle(workbook);                    //单元格样式对象
-            HSSFRow row1 = sheet.createRow((short) 0);                // 在索引0的位置创建行(最顶端的行)
-            HSSFCell cell1 = null;                                    // 在索引0的位置创建单元格(左上端)
+            Sheet sheet = workbook.createSheet();                        // 创建工作表
+            CellStyle columnTopStyle = getColumnTopStyle(workbook);     //获取列头样式对象
+            CellStyle style = getStyle(workbook);                    //单元格样式对象
+            Row row1 = sheet.createRow((short) 0);                // 在索引0的位置创建行(最顶端的行)
+            Cell cell1 = null;                                    // 在索引0的位置创建单元格(左上端)
             // 将列头设置到sheet的单元格中
             int columnSize = title.length;
             for (int i = 0; i < columnSize; i++)
@@ -394,12 +451,12 @@ public class HandleData
             {
                 for (Map.Entry<String, Map<String, Object>> entry : resultData.entrySet())
                 {
-                    HSSFRow row = sheet.createRow(i);
+                    Row row = sheet.createRow(i);
                     i++;
                     Map<String, Object> item = entry.getValue();
                     for (int j = 0; j < columnSize; j++)
                     {
-                        HSSFCell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
+                        Cell cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);//设置单元格的数据类型
                         Object v = item.get(title[j]);
                         if(v instanceof Double)
                             cell.setCellValue(((Double) v).doubleValue()); //设置单元格的值
@@ -412,11 +469,11 @@ public class HandleData
             {
                 for ( i = 0; i < data.size(); i++)
                 {
-                    HSSFRow row = sheet.createRow(i+1);
+                    Row row = sheet.createRow(i+1);
                     Map<String, Object> item = data.get(i);
                     for (int j = 0; j < columnSize; j++)
                     {
-                        HSSFCell cell = row.createCell(j);//设置单元格的数据类型
+                        Cell cell = row.createCell(j);//设置单元格的数据类型
                         Object v = item.get(title[j]);
                         if(v instanceof Double)
                             cell.setCellValue(((Double) v).doubleValue()); //设置单元格的值
@@ -434,7 +491,8 @@ public class HandleData
         }
         logger.info("保存完成，保存位置：" + resultPathStr);
     }
-    
+
+    private
 
     /* 
      * 列头单元格样式
@@ -484,10 +542,10 @@ public class HandleData
     /*  
    * 列数据信息单元格样式
    */
-    HSSFCellStyle getStyle(HSSFWorkbook workbook)
+    CellStyle getStyle(Workbook workbook)
     {
         // 设置字体
-        HSSFFont font = workbook.createFont();
+        Font font = workbook.createFont();
         //设置字体大小
         //font.setFontHeightInPoints((short)10);
         //字体加粗
@@ -495,7 +553,7 @@ public class HandleData
         //设置字体名字 
         font.setFontName("Courier New");
         //设置样式; 
-        HSSFCellStyle style = workbook.createCellStyle();
+        CellStyle style = workbook.createCellStyle();
         //设置底边框; 
         style.setBorderBottom(HSSFCellStyle.BORDER_THIN);
         //设置底边框颜色;  
