@@ -422,6 +422,8 @@ public class HandleData
     {
         try
         {
+            logger.info("save data,size: "+data.size());
+            int step = data.size()/100;
             Workbook workbook;                      // 创建工作簿对象
             if(resultPathStr.endsWith(".xls"))
             {
@@ -433,15 +435,15 @@ public class HandleData
             }
             FileOutputStream fos = new FileOutputStream(resultPathStr);        // 创建.xls文件
             Sheet sheet = workbook.createSheet();                        // 创建工作表
-            CellStyle columnTopStyle = getColumnTopStyle(workbook);     //获取列头样式对象
-            CellStyle style = getStyle(workbook);                    //单元格样式对象
+           // CellStyle columnTopStyle = getColumnTopStyle(workbook);     //获取列头样式对象
+           // CellStyle style = getStyle(workbook);                    //单元格样式对象
             Row row1 = sheet.createRow((short) 0);                // 在索引0的位置创建行(最顶端的行)
             Cell cell1 = null;                                    // 在索引0的位置创建单元格(左上端)
             // 将列头设置到sheet的单元格中
             int columnSize = title.length;
             for (int i = 0; i < columnSize; i++)
             {
-                cell1 = row1.createCell(i);                //创建列头对应个数的单元格
+                cell1 = row1.createCell(i);               //创建列头对应个数的单元格
                 cell1.setCellType(HSSFCell.CELL_TYPE_STRING);        //设置列头单元格的数据类型
                 cell1.setCellValue(title[i]);                        //设置列头单元格的值
                 // cell1.setCellStyle(columnTopStyle);                    //设置列头单元格样式
@@ -463,12 +465,17 @@ public class HandleData
                         else
                             cell.setCellValue(v.toString()); //设置单元格的值
                     }
+                    item.clear();
                 }
             }
             else
             {
                 for ( i = 0; i < data.size(); i++)
                 {
+                    if((i+1)%step==0)
+                    {
+                        logger.info("finish: "+(Math.floor((float)i/data.size()*100+1)+"%"));
+                    }
                     Row row = sheet.createRow(i+1);
                     Map<String, Object> item = data.get(i);
                     for (int j = 0; j < columnSize; j++)
@@ -480,6 +487,7 @@ public class HandleData
                         else
                             cell.setCellValue((String)v); //设置单元格的值
                     }
+                    item.clear();
                 }
             }
             workbook.write(fos);// 将workbook对象输出到文件test.xls
