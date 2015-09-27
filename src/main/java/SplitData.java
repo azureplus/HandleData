@@ -54,7 +54,7 @@ public class SplitData
                     item.put(title[6], d[0]);
                     item.put(title[7], d[1]);
                     fixedsize++;
-                } else if (item2.get(title[7]) == null || item.get(title[7]) == "")
+                } else if (d7 == null || d7 == "")
                 {
                     item.put(title[0], "fixed" + item.get(title[0]));
                     handleData.data2.add(item);
