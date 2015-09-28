@@ -17,7 +17,8 @@ public class SplitData
 
         HandleData handleData = new HandleData();
         handleData.path = filePath;
-        handleData.resultPathStr = filePath.toRealPath().toString().replace(".xls", "_result.xlsx");
+        String t0  = args[0].substring(args[0].lastIndexOf("."));
+        handleData.resultPathStr = filePath.toRealPath().toString().replace(t0, "_result.xlsx");
         InputStream inputStream = new FileInputStream(filePath.toRealPath().toString());
         String[] title = handleData.title = handleData.readExcelTitle(inputStream);
         handleData.data1 = new ArrayList<>();
@@ -28,18 +29,20 @@ public class SplitData
         Map<String, Object> item2 = new HashMap<>();
         int i = 0;
         int s, s1;
+        int p1 = 9;
+        int p2 = 10;
         try
         {
             for (i = 0; i < size; i++)
             {
                 Map<String, Object> item = handleData.data1.get(i);
-                if (i < 3)
+                if (i < 2)
                 {
                     handleData.data2.add(item);
                     continue;
                 }
-                String date = (String) item.get(title[6]);
-                String d7 = (String) item.get(title[7]);
+                String date = String.valueOf(item.get(title[p1]));
+                String d7 = String.valueOf( item.get(title[p2]));
                 if(date.indexOf("N/A") != -1 || d7 .indexOf("N/A") != -1)
                 {
                     item.put(title[0], "fixed" + item.get(title[0]));
@@ -51,8 +54,8 @@ public class SplitData
                 if (d.length > 1)
                 {
                     item.put(title[0], "fixed" + item.get(title[0]));
-                    item.put(title[6], d[0]);
-                    item.put(title[7], d[1]);
+                    item.put(title[p1], d[0]);
+                    item.put(title[p2], d[1]);
                     fixedsize++;
                 } else if (d7 == null || d7 == "")
                 {
@@ -60,17 +63,18 @@ public class SplitData
                     handleData.data2.add(item);
                     continue;
                 }
-                String t = ((String) item.get(title[6])).split("-")[0];
-                s = Integer.valueOf(t);
-                s1 = Integer.valueOf(((String) item.get(title[7])).split("-")[0]);
-                item.put(title[6], String.valueOf(s));
-                item.put(title[7], String.valueOf(s1));
+                String t = String.valueOf(item.get(title[p1])).split("-")[0];
+                s = (int)(double)Double.valueOf(t);
+                t = String.valueOf(item.get(title[p2])).split("-")[0];
+                s1 = (int)(double)Double.valueOf(t);
+                item.put(title[p1], String.valueOf(s));
+                item.put(title[p2], String.valueOf(s1));
                 handleData.data2.add(item);
                 for (int j = s; j < s1; j++)
                 {
                     item2 = new HashMap<>(title.length);
                     item2.putAll(item);
-                    item2.put(title[6], String.valueOf(j+1));
+                    item2.put(title[p1], String.valueOf(j+1));
                     handleData.data2.add(item2);
                 }
 
@@ -82,6 +86,6 @@ public class SplitData
         }
         handleData.data1 = null;
         handleData.writeResultData(handleData.data2);
-        System.out.printf("=========" + fixedsize);
+        System.out.printf("========= fixedsize: " + fixedsize);
     }
 }

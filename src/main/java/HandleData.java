@@ -1,14 +1,8 @@
 import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.util.HSSFColor;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.NumberToTextConverter;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import sun.tools.jconsole.inspector.XSheet;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -62,17 +56,22 @@ public class HandleData
         }
     }
 
-    private static POIFSFileSystem fs;
-    private static HSSFWorkbook wb;
-    private static HSSFSheet sheet;
-    private static HSSFRow row;
+    private static Workbook wb;
+    private static Sheet sheet;
+    private static Row row;
 
     public String[] readExcelTitle(InputStream is) throws IOException
     {
         try
         {
-            fs = new POIFSFileSystem(is);
-            wb = new HSSFWorkbook(fs);
+            if(path.endsWith("xls"))
+            {
+                wb = new HSSFWorkbook(is);
+            }
+            else
+            {
+                wb = new XSSFWorkbook(is);
+            }
         } catch (IOException e)
         {
             e.printStackTrace();
@@ -125,11 +124,10 @@ public class HandleData
             }
         } catch (Exception e)
         {
-            logger.info(i + "," + j);
+            logger.error(i + "," + j);
             e.printStackTrace();
         }
         logger.info("读取数据耗时：" + (System.currentTimeMillis() - t) / 1000.0 + "秒");
-        fs = null;
         wb = null;
         sheet = null;
         row = null;
@@ -291,7 +289,7 @@ public class HandleData
      * @param cell
      * @return
      */
-    private Object getObjectCellValue(HSSFCell cell)
+    private Object getObjectCellValue(Cell cell)
     {
         Object strCell = "";
         if (cell == null)
@@ -300,17 +298,16 @@ public class HandleData
         }
         switch (cell.getCellType())
         {
-            case HSSFCell.CELL_TYPE_STRING:
+            case Cell.CELL_TYPE_STRING:
                 strCell = cell.getStringCellValue();
                 break;
-            case HSSFCell.CELL_TYPE_NUMERIC:
+            case Cell.CELL_TYPE_NUMERIC:
                 strCell = cell.getNumericCellValue();
-                logger.info(strCell);
                 break;
-            case HSSFCell.CELL_TYPE_BOOLEAN:
+            case Cell.CELL_TYPE_BOOLEAN:
                 strCell = cell.getBooleanCellValue();
                 break;
-            case HSSFCell.CELL_TYPE_BLANK:
+            case Cell.CELL_TYPE_BLANK:
                 strCell = "";
                 break;
             default:
